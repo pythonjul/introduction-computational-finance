@@ -57,8 +57,8 @@ cat('initial value of the portfolio:',initialPorteFolio)
 ```{r}
 alphaMsf=10/20
 alphaSbux=10/20
-cat('\u03B1_{msft}:',alphaMsf,'\n')
-cat('\u03B1_{sbux}:',alphaSbux)
+cat('alpha_{msft}:',alphaMsf,'\n')
+cat('alpha_{sbux}:',alphaSbux)
 
 ```
 Consider now that at the end of month t, the prices are $P_{msft,t−1} = \$90$ and $P_{sbux,t−1} = \$28$.  
