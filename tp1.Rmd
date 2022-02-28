@@ -78,21 +78,3 @@ finalPortefolio=10*90+10*28
 cat('return of the portfolio:',returnPortefolio,'\n')
 cat('portefolio value at the end of month t:',finalPortefolio)
 ```
-```{r}
-
-```
-```{r}
-
-```
-```{r}
-
-```
-
-
-
-
-
-
-
-
-
