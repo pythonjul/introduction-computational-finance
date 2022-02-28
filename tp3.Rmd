@@ -1,0 +1,107 @@
+# TP3 Introduction to Computational Finance
+
+## Intraday seasonality
+Using data on the EUR/USD exchange rate (for the period of January 1st to Match 1st 2012 ), and considering 15-minute wide bins, plot a histogram of the daily distribution of ticks.
+Data structure: `timestamp bid ask` where timestamp denotes the time (in seconds) measured starting from 01 Jan 1970 00:00:00. Comment on the obtained histogram. You can also have a look at the weekly distribution of ticks.
+
+```{r}
+pacman::p_load(pacman, rio,datasets,ggplot2,lubridate)
+t2<-import("EUR_USD-20120101-20120301.dat")
+t2$V1<-as_datetime(t2$V1,origin = "1970-01-01")
+
+liminf<-ymd_hms("2012-01-01 00:00:01")
+limsup<-ymd_hms("2012-03-01 23:59:59")
+mydates<-interval(liminf,limsup)
+Newt2 <- t2[which(t2$V1 %within% mydates),]
+
+b <- seq(liminf,limsup, by = "days")
+
+hist(Newt2$V1,breaks=10,freq=TRUE)
+
+hist(Newt2$V1,breaks=b)
+
+```
+
+In the distribution_eur-usd_ticks graph, we can see that there are more transactions at the beginning of the month and at the end of the month, with large variations. 
+month and at the end of the month, with large variations. This can be explained by the fact that on these dates, a lot of information 
+This can be explained by the fact that on these specific dates, a lot of information influences the market, such as the US unemployment rate or the published balance sheets of 
+or the published balance sheets of companies.
+In order to see the distribution of trades during the week, let's look at the graph 
+Weekday_comparison_number_transactions. As one might expect, there are very few trades 
+trades that are made on the weekend with a large spread.
+
+```{r}
+donnees <- read.table("EUR_USD-20120101-20120301.dat", col.names = c("timestamp","bid","ask"));
+
+donnees$timestamp <- as.POSIXct(donnees$timestamp, origin="1970-01-01")
+
+data2 <- donnees[donnees$timestamp >= "2012-01-01",]
+
+df<-data.frame(date=data2$timestamp)
+df$days<-weekdays(as.Date(df$date))
+
+b <- seq(as.POSIXct("2012-01-01 00:00:00"),as.POSIXct("2012-03-01 00:00:00"), by = "15 min")
+
+pf<- as.data.frame(table(df$days))
+
+aa<-pf;
+
+names(pf)<- c("Weekday","Pickups")
+
+ggplot(data = pf, aes(x=Weekday,y=Pickups,fill=Weekday))+geom_bar(stat = "identity")+ggtitle(label = "Weekday_comparison_number_transactions")+theme_minimal()+theme(plot.title = element_text(hjust = 0.5, lineheight = 0.8, face = "bold"))+xlab("Weekdays")+ylab("Number of transactions")
+
+```
+
+## Random walks
+
+Generate a random walk and an AR(1) process seen during the course. Explain how the
+random walk, x(t + 1) = x(t) + epsilon(t) is a particular instance of AR1 walk.
+Play with the AR(1) process parameters so as to produce mean-reverting and trendy
+processes.
+
+```{r}
+Nb=1000
+
+RW <- function(N, x0, mu, variance) {
+  z<-cumsum(rnorm(n=N, mean=0, sd=sqrt(variance)))
+  t<-1:N
+  x<-x0+t*mu+z
+  return(x)
+}#source:https://b0ookdown.org/kochiuyu/Technical-Analysis-with-R/simulation.html
+
+randomWalk=RW(Nb,0,0,1)
+#acf(randomWalk)
+plot(randomWalk,typ='l', col="blue",ylim=c(100,-100),
+     main="random_walk",
+     xlab="temps",
+     ylab="somme")
+
+x <- arima.sim(model = list(ar = .99), n = Nb)
+#summary(x)
+ar1.mean0<-x-mean(x)
+#ts.plot(ar1.mean0)
+#summary(ar1.mean0)
+#acf(x)
+lines(ar1.mean0,typ='l',col="green")
+
+#source:https://stats.stackexchange.com/questions/208305/constructing-deterministic-trend-and-ar1-and-forecasting-in-r
+innovs <- rnorm(Nb,0,3)
+x<-1:Nb #time variable
+mu<-10+.5*x #linear trend
+ar1.trendy<-mu+arima.sim(length(x),innov=innovs, model=list(ar=0.7),sd=3)
+lines(ar1.trendy,typ='l',col="red")
+
+legend("topleft",
+       c("RW","ar1.mean0","ar1.trendy"),
+       fill=c("blue","green","red")
+)
+
+```
+
+If phi1 is close to zero, we have that ar(1) has an expectation close to zero. But the graph of the latter 
+does not look like a random walk, so we can take phi1 close to 1, subtract or add its expectation (=C) to get an expectation of zero. 
+If we take our data phi1 close to 1 and C as +/- the expectation in order to get an expectation of zero, we do have an expectation of zero, and a similar behaviour with long moments spent above zero, and we almost certainly return to zero, as in the case of the random walk. We can use the ACF function to see that we have the same decreasing behaviour in both cases.
+
+
+
+
