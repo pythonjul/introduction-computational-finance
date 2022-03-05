@@ -1,0 +1,222 @@
+# Introduction to Computational Finance
+
+## Optimal Portfolios
+
+In this series we deal with the closing prices of Macdonald’s, Bank of America, IBM,Chevron, Coca-Cola, Novartis and AT&T, over a one-year time span extending from 2013-05-01 to 2014-05-01.
+Using the data available on Moodle, draw Markowitz’s efficient frontier using on the one hand the analytical expression, and on the other a random Monte-Carlo search.
+Using the efficient frontier, find the weight of the portfolio with the minimal volatility.
+What can you say about the return of this portfolio?
+
+## methode_monte_carlo:
+```{r}
+mafct <- function(data) {
+poids<-prop.table(runif(7))
+ret<-data[-1,]
+for (i in 1:nrow(ret)){
+  for (j in 1:ncol(ret)){
+    ret[i,j]<-(ret[i,j]-data[i,j])/data[i,j]
+  }
+}
+C <- var(ret,na.rm = T)
+esperance_retours<-colMeans(ret)
+multip_ret<-replicate(7,1)
+for (i in 1:nrow(ret)) {
+   multip_ret<-multip_ret*(1+ret[i,])
+   }
+portfolio_esp_tab<-poids*esperance_retours
+portfolio_esp<-sum(portfolio_esp_tab)
+portfolio_var<-0
+for (i in 1:nrow(C)) {
+  for (j in 1:ncol(C)) {
+    portfolio_var<-portfolio_var+poids[i]*poids[j]*C[i,j]
+  }
+}
+
+portfolio_sigma=sqrt(portfolio_var)
+temp<- list(mu_p=as.numeric(portfolio_esp),sqrt_var_p=as.numeric(portfolio_sigma))
+return (temp)
+}
+
+data <- read.table("closes.dat", 
+                   col.names = c("mcdo","boa","ibm","ch","coca","nov","att"));
+N=1000
+xx<-0
+yy<-0
+for (i in 1:N){
+  r<-mafct(data)
+  xx<-c(xx,r$sqrt_var_p)
+  yy<-c(yy,r$mu_p)
+}
+xx<-xx[-1]
+yy<-yy[-1]
+plot(xx, yy,
+     main="efficient_frontier_monteCarlo",
+     xxlab="sigma_p",
+     yylab="E(R_p)")
+```
+
+## methode_analytique_plusPlots:
+```{r}
+data <- read.table("closes.dat", 
+                   col.names = c("mcdo","boa","ibm","ch","coca","nov","att"));
+
+mafct2 <- function(data) {
+means <- colMeans(data,na.rm = T) #vest 1,7 qui contient les moyennes
+C <- var(data,na.rm = T) #matric de cov
+invC <- solve(C) #inverse la matrice
+
+un <- matrix(1, nrow = length(means))
+
+
+alpha <- t(un) %*% invC %*% un #oy t(..) est la transposee
+beta <- t(un) %*% invC %*% means
+gamma <- t(means) %*% invC %*% means
+delta <- alpha * gamma - beta * beta
+
+a = as.numeric(alpha)
+b = as.numeric(beta)
+c = as.numeric(gamma)
+d = as.numeric(delta)
+
+weights <- prop.table((runif(7)))
+mu_p<-sum(weights*means)
+
+lambd1<-(c-b*mu_p)/d
+lambd2<-(a*mu_p-b)/d
+
+w <- invC%*%t((lambd1*t(un)+lambd2*means))
+sigma_p_sq <- t(w)%*%C%*%w
+#test<-lambd1+lambd2*mu_p
+temp<- list(mu_p=as.numeric(mu_p),var_p=as.numeric(sigma_p_sq),poids=c(weights))
+return (temp)
+}
+ret<-data[-1,]
+for (i in 1:nrow(ret)){
+  for (j in 1:ncol(ret)){
+    ret[i,j]<-(ret[i,j]-data[i,j])/data[i,j]
+  }
+}
+N=10000
+x<-0
+y<-0
+w<-prop.table((runif(7)))
+for (i in 1:N){
+  r<-mafct2(ret)
+  x<-c(x,r$var_p)
+  y<-c(y,r$mu_p)
+  w<-c(w,r$poids)
+}
+x<-x[-1]
+y<-y[-1]
+w<-w[-1]
+w<-w[-1]
+w<-w[-1]
+w<-w[-1]
+w<-w[-1]
+w<-w[-1]
+w<-w[-1]
+
+plot(x, y,
+     main="efficient_frontier_avecmin",
+     xlab="sigma_p",
+     ylab="E(R_p)",
+     #ylim = c(-1e-04 ,max(y))
+)
+
+#-------
+index_min_sigma_p<-which.min(x)
+t<-index_min_sigma_p*7
+poids_corresp<-c(w[t-6],w[t-5],w[t-4],w[t-3],w[t-2],w[t-1],w[t])
+print(poids_corresp)
+points(x[index_min_sigma_p],y[index_min_sigma_p],col='red')
+#----------
+plot(xx, yy,
+     main="efficient_frontier",
+     xlab="sigma_p",
+     ylab="E(R_p)",
+     #ylim = c(-1e-04 ,max(y))
+     )
+points(sqrt(x), y,col='red')
+legend("topright",
+       c("ef mithode analytique","mithode Monte Carlo"),
+       fill=c("red","black"),
+       cex=0.6)
+```
+
+## return-computation
+```{r}
+
+mafct <- function(data) {#je mets un seul poids ici et je veux calculer le return de ce portfolio
+  poids<-c(0.16615240, 0.17895094, 0.30915982, 0.18169583, 0.05915160, 0.01160653, 0.09328287)
+  
+  ret<-data[-1,]
+  for (i in 1:nrow(ret)){
+    for (j in 1:ncol(ret)){
+      ret[i,j]<-(ret[i,j]-data[i,j])/data[i,j]
+    }
+  }
+  
+  C <- var(ret,na.rm = T)
+  
+  esperance_retours<-colMeans(ret)
+  
+  multip_ret<-replicate(7,1)
+  for (i in 1:nrow(ret)) {
+    multip_ret<-multip_ret*(1+ret[i,])
+  }
+  multip_ret<-multip_ret*poids
+  
+  portfolio_esp_tab<-poids*esperance_retours
+  portfolio_esp<-sum(portfolio_esp_tab)
+  
+  #print(portfolio_esp)
+  
+  portfolio_var<-0
+  for (i in 1:nrow(C)) {
+    for (j in 1:ncol(C)) {
+      portfolio_var<-portfolio_var+poids[i]*poids[j]*C[i,j]
+    }
+  }
+  
+  portfolio_sigma=sqrt(portfolio_var)
+  #print(portfolio_sigma)
+  temp<- list(mu_p=as.numeric(portfolio_esp),sqrt_var_p=as.numeric(portfolio_sigma),retour_p=sum(multip_ret))
+  return (temp)
+}
+
+data <- read.table("closes.dat", 
+                   col.names = c("mcdo","boa","ibm","ch","coca","nov","att"));
+
+tempp<-mafct(data)
+print(tempp$retour_p)
+debut<-sum(data[1,])
+
+
+N=1000
+xx<-0
+yy<-0
+for (i in 1:N){
+  r<-mafct(data)
+  xx<-c(xx,r$sqrt_var_p)
+  yy<-c(yy,r$mu_p)
+}
+
+xx<-xx[-1]
+yy<-yy[-1]
+
+plot(xx, yy,
+     main="efficient_frontier_monteCarlo",
+     xxlab="sigma_p",
+     yylab="E(R_p)")
+
+```
+
+* a)
+On the graph "efficient_frontier", the Markowitz's efficient frontier has been calculated in red using using the analytical method. In black are the pairs obtained with the Monte Carlo method. 
+Carlo method.  I did my code for 10,000 iterations for the analytical solution. But I think I have a But I think I have an error in my Monte Carlo code because it takes a long time to run. I have only only run it for 1,000 iterations, but if you run more iterations for the Monte Carlo method you will see a very close result between the two methods.
+
+* b)
+If you are risk averse, for example, you will want a minimum variance. In our case, we want to minimise sigma_p (standard deviation). The point in red in this second diagram The red point in this second diagram, "efficient_frontier_avecmin", corresponds to the minimum of sigma_p. In my example, the red point corresponds to the couple (3.66e-05,-3.25e-05) with the weights : (rounded values)
+Macdonald's Bank of America IBM Chevron Coca-Cola Novartis AT&T
+0.17 0.18 0.31 0.18 0.06 0.01 0.09
+with a portfolio return of about 0.98. So you lose money in this case if you are risk averse. Note: if we run this example again, we will have different value weights but a return very close to the one found above. return very close to the one found above

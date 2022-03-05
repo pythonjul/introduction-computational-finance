@@ -1,0 +1,161 @@
+# Introduction to Computational Finance
+
+## Time average
+Draw the simple moving average for N = 100 and the exponential moving averages for
+α = 2/(N + 1), α = 0.1 and α = 0.01.
+
+```{r}
+set.seed(0);
+x=100+cumsum(0.5-runif(1000))
+N=100
+#MA
+MA<-c(1:N)
+temp=0
+for (i in 1:N){
+  temp=temp+x[i+N]
+}
+MA[1]=temp/N
+
+for (i in 2:N){
+  MA[i]=MA[i-1]-(x[i-1]/N)+(x[i+N-1]/N)
+}
+#EMA
+EMA1<-c(1:N)
+alpha1=0.1
+
+temp1=0
+temp2=0
+for (i in 1:N){
+  temp1=temp1+x[i+N]*(1-alpha1)^(i-1)
+  temp2=temp2+(1-alpha1)^(i-1)
+}
+EMA1[1]=temp1/temp2
+for (i in 2:N){
+  EMA1[i]=alpha1*x[i+N]+(1-alpha1)*EMA1[i-1]
+}
+#-----
+EMA2<-c(1:N)
+alpha2=0.01
+temp2_1=0
+temp2_2=0
+for (i in 1:N){
+  temp2_1=temp2_1+x[i+N]*(1-alpha2)^(i-1)
+  temp2_2=temp2_2+(1-alpha2)^(i-1)
+}
+EMA2[1]=temp2_1/temp2_2
+for (i in 2:N){
+  EMA2[i]=alpha2*x[i+N]+(1-alpha2)*EMA2[i-1]
+}
+#----
+EMA3<-c(1:N)
+alpha3=2/(N+1)
+temp3_1=0
+temp3_2=0
+for (i in 1:N){
+  temp3_1=temp3_1+x[i+N]*(1-alpha3)^(i-1)
+  temp3_2=temp3_2+(1-alpha3)^(i-1)
+}
+EMA3[1]=temp3_1/temp3_2
+for (i in 2:N){
+  EMA3[i]=alpha3*x[i+N]+(1-alpha3)*EMA3[i-1]
+}
+
+plot(EMA1,typ='l', col="blue",
+     main="Exponential_moving_average",
+     xlab="temps",
+     ylab="valeur")
+lines(EMA2,typ='l',col="green")
+lines(EMA3,typ='l',col="red")
+lines(MA,typ='l',col="brown")
+legend("topleft",
+       c("alpha=0.1","alpha=0.01","alpha=2/(N+1)","MA"),
+       fill=c("blue","green","red","brown"),
+       cex=0.6)
+```
+
+* What can be said regarding the case α = 0.1 compared to α = 0.01 ?
+If we take an alpha close to 1, this will give us Zt.
+So if we take an alpha that is 0.1, this will reduce the oldest observations more
+the oldest observations more quickly, whereas an alpha of 0.01 will
+alpha of 0.01 will take the older values into account for longer.
+older values for longer.
+
+* If we take alpha=2/(N+1), this will depend on N. Thus, if N
+is 100 as in the beginning of the exercise, we will have alpha
+which is about 0.02, and therefore reduces its observations slightly more
+observations compared to alpha worth 0.1.
+
+
+## Scaling law
+
+Using the data provided (EUR/USD, tick-by-tick, from January 1st to
+March 1st 2012), compute the number of directional changes for different scales δ.
+Draw a log-log plot of the number of directional changes as a function of the scale δ.
+What do you observe ?
+
+```{r}
+data <- read.table("EUR_USD-20120101-20120301.dat", col.names = c("timestamp","bid","ask"));
+
+data$timestamp <- as.POSIXct(data$timestamp, origin="1970-01-01")
+
+b <- seq(as.POSIXct("2012-01-01 00:00:00"),as.POSIXct("2012-03-01 00:00:00"), by = "15 min")
+
+data22 <- data[data$timestamp >= "2012-01-01",]
+
+data22$mid<-(data22$bid+data22$ask)/2
+#----
+
+algo<- function(delta,data2){
+modeup=1#ie initialisi ` up
+#delta<-0.1
+xext<-data2$mid[1]
+nbChange=0
+for (x in data2$mid){
+  if (modeup==1){
+    if (x<xext){
+      xext<-x
+    }
+    else if (((x-xext)/xext)>=delta){
+      #print("new DC up")
+      xext<-x
+      modeup=0
+      nbChange=nbChange+1
+    }
+  }
+  else{
+    if (x>xext){
+      xext<-x
+    }
+    else if (((xext-x)/xext)>=delta){
+      #print("new DC down")
+      xext<-x
+      modeup=1
+      nbChange=nbChange+1
+    }
+  }
+}
+return(nbChange)}
+
+ww<-seq(0.01, 0.0001, -0.0001)
+a<-c(1:100)
+incr=0.01
+for (i in 1:100){
+  a[i]<-algo(incr,data22)
+  incr=incr-0.0001
+}
+
+plot(a,col="blue",typ='l',
+     main = "Nombre_de_chgmts_de_directions",
+     log="xy",
+     xlab="valeur de l'intervalle",
+     ylab="nombre de chgmt de directions")
+```
+
+It can be seen that the number of changes of direction
+direction increases exponentially as the interval is reduced.
+the interval. This confirms what we have seen in class with the idea of a fractal curve.
+seen in class with the idea of a fractal curve.
+Note: on the graph
+Number_of_chgmts_of_directions, on the x-axis the
+first value is 0.01 and at each step, we decrease this value
+this value of 0.0001

@@ -1,0 +1,88 @@
+# Introduction to Computational Finance
+
+## Minority Game
+Implement a Minority Game. Draw the curve describing how the variance σ
+2/N of the participation A depends on the parameter α = 2M/N. Here N denotes the number of agents and M the length of the historical window taken into consideration by an agent. When S = 2 (S being the number of strategies), what is the critical value αc for which σ 2/N reaches a minimum ?
+
+```{r}
+#T=8 #nb itirations
+#N=5 #nb d'agents, impair
+#M=3 #longueur historique
+#S=2 #nombre de strat par agent
+
+mafct <- function(T,N,M,S2) {
+  
+  U<-rep(0,N*S2) #fct util
+  
+  mu<- rbinom(n=M, size=1, prob=0.5) #historique   (prob d'avoir des 1)
+  
+  matstrat<-matrix( nrow = 2^M, ncol = N*2) #contient les strat des diff joueurs
+  for(i in 1:(2^M)) { 
+    for (j in 1:(N*2)) {
+      matstrat[i,j]<-rbinom(n=1,size=1,prob=0.5)
+    }
+  }
+  
+  Asave<-c(1)
+  
+  for (i in 1:T) {
+    strat_select<-rep(0, N)
+    
+    for (i in 1:N) {
+      temp<-U[((i*S2)-S2+1):(((i+1)*S2)-S2)] #on cherche les U des strat de l'agent i
+      #print(temp)
+      strat_select[i]<-which.max(temp) #est stocki pour l'agent i, sa stratigie avec le U le plus haut
+      strat_select[i]<-strat_select[i]*S2-S2+1
+      #print(strat_select)
+    }
+    
+    S<-matstrat[,strat_select]
+    
+    a<-S[Reduce(function(x,y) x*2+y, mu)+1,] #va prendre dans S, la ligne numiro mu (mu itant en binaire,on le transforme en int)
+    #a<-colSums(S)%%2 #
+    
+    for (j in 1:length(a)){
+      if (a[j]==0){
+        a[j]<- -1
+      }
+    }
+    A<-sum(a)
+    Asave<-c(Asave,A)
+    
+    for (i in strat_select) {
+      U[i]<-U[i]-a[i]*(A/N)
+    }
+    
+    mu<-mu[-1]
+    
+    if (A>0){
+      mu<-c(mu,0) #ceux qui ont vendu ont gagni l'itape
+    }
+    else {
+      mu<-c(mu,1)#ceux qui on acheti on gagni
+    }
+  }
+  
+  #enleve initialisation du vect
+  varA<-var(Asave[-1])
+  toreturn<-list(xx=as.numeric((2^M)/N),yy=as.numeric(varA/N))
+  return (toreturn)}
+
+datax<-c(1)
+datay<-c(1)
+for (n in 3:30) {
+  if (n%%2==0){
+    next
+  }
+  for (m in 3:15) {
+    res<-mafct(100,n,m,2)
+    datax<-c(datax,res$xx)
+    datay<-c(datay,res$yy)
+  }
+  print(n)
+}
+
+plot(datax[-1],datay[-1],main="plot1",xlab = "alpha",ylab = "Var/N",ylim = c(0,2),xlim = c(0,1000))
+```
+
+When S=2, $α_{c} ~= 0.3374$, by the formula given in the course. If α is large, it means that one has a small population or a large history, so more chance of being uncorrelated. If α is small, one has a large population or a short history, so more chance that the values are correlated.

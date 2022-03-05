@@ -1,0 +1,32 @@
+# Introduction to Computational Finance
+
+## Modeling a LOB - Maslov’s model
+
+Implement Maslov’s model, which despite its simplicity allows reproducing interesting statistical features. The model:
+• one trader at each time step;
+• buys or sells with probability 0.5;
+• issues a market order $x = (bid/ask, σ, t_{x})$ with probability $1 − r$;
+• otherwise issues a limit order $x = (p_{x}, σ, t_{x})$ with $p_{x} = p' − K$ (if buying order) or $p_{x} = p' + K$ (if selling order), p' being the last price paid;
+• K is a random variable following some given distribution;
+• no order cancellation is allowed.
+
+The reference article presenting Maslov’s model, entitled Simple model of a limit order driven market.
+Run the algorithm on 1000 iterations, considering r = 0.5, K = 1. With the simulated data:
+
+* Plot the time series of the market, ask and bid prices p(t), a(t) and b(t).
+* Plot the time series of returns and their distribution.
+* Draw the autocorrelation plot of the return.
+
+Using the plots, answer the following questions:
+
+* Are there any differences between the mid price and the market price?
+There are differences between the mid price and the market price. I have subtracted the the market price on the mid price in the graph "mid-price evolution". 
+
+* What do you observe from the time series of the return?
+On the "evolution of returns" graph, we can see that that most of the time we observe small gains/losses small gains/losses, but it also happens more rarely but it happens more rarely to have bigger fluctuations. This is interesting because when there is a bigger gain/loss, we often gain/loss, we often observe the opposite afterwards. the reverse. This can be translated as if a stock is suddenly worth less than its perceived value value, buyers will want to buy that stock, and and vice versa. "This is again, similar to the situation in real market, where signs of price increments are known to have only short range (< 30 min) correlations."
+
+* Are there differences between the distribution of the return and the normal distribution?
+As stated in the annex "The histogram of short time-lag increments of market price has a very peculiar non-Gaussian shape with a sharp maximum and broad wings", we observe that the histogram does not look like a normal curve. In addition, I performed a sham test, I performed a shapiro test; and since the p-value of the test is significant (p-value < 2.2e-16), the sample does not follow a normal distribution.
+
+* What do you observe from the autocorrelation plot
+We observe a negative autocorrelation, as well as a potential potential seasonality in 8 and 9, 13 and 14. It's quite impressive to get this with a simplified model like the one we have studied. model like the one we have studied.

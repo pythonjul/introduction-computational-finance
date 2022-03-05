@@ -1,0 +1,171 @@
+# Introduction to Computational Finance
+
+## TWAP, VWAP, based on price algo
+
+Implement a TWAP algorithm that splits a fictitious order to buy 12 million euros into 12
+slices. A slice is executed every 15 minutes.
+Compute the execution prices using at the times picked .
+Compare the prices obtained with the decision price.
+
+Implement a VWAP algorithm trading an order that is similar to the one above, i.e. buy 12
+million euros, split into 12 slices and each slice executed every 15 minutes.
+You can use the daily distribution of ticks as "historical data" to estimate volumes traded
+at each interval of time.
+Picking the same times as in your TWAP implementation, compute the execution prices
+obtained with VWAP.
+Compare the prices obtained with the TWAP and the VWAP.
+
+Finally, implement an algorithm that considers the evolution of prices. One way to do is to
+split the order similarly to the TWAP algorithm, and trade a slice at each directional change
+δ (buying when downwards, selling when upwards in order to reduce slippage to a minimum).
+Picking the same initial times as in the last two cases, compute the execution prices and
+compare them with the ones obtained using previous methods.
+How should you choose δ in order to execute the full order over 3 hours ?
+Compare the prices obtained with the price evolution with the ones obtained using
+previous methods.
+
+```{r}
+data <- read.table("EUR_USD-20120101-20120301.dat", col.names = c("timestamp","bid","ask"));
+
+data$timestamp <- as.POSIXct(data$timestamp, origin="1970-01-01")
+
+b <- seq(as.POSIXct("2012-01-01 00:00:00"),as.POSIXct("2012-03-01 00:00:00"), by = "15 min")
+
+data2 <- data[data$timestamp >= "2012-01-01",]
+
+
+
+
+DecisionPrice<- function(pl,datas,NbAct){
+  x=datas$ask[1+pl]*NbAct*12
+  return (x)
+}
+#---------------
+Twap <- function(pl,datas,NbAct){
+  x<-0
+  tableTemp<-datas
+  for (i in 1:12) {
+    x = x + tableTemp$ask[1+pl]*NbAct
+    
+    tableTemp<-tableTemp[tableTemp$timestamp>=(tableTemp$timestamp[1] + 
+                                                 lubridate::minutes(15)),]
+  }
+  return (x)
+}
+#--------
+Vwap <- function(pl,datas,NbAct){
+  x<-c()
+  tableTemp<-datas
+  l<-c()
+  
+  for (i in 1:12) {
+    x <- c(x,tableTemp$ask[1+pl])
+    
+    savesNblignes<-nrow(tableTemp)
+    
+    tableTemp<-tableTemp[tableTemp$timestamp>=(tableTemp$timestamp[1] + 
+                                                 lubridate::minutes(15)),]
+    l <- c(l,savesNblignes-nrow(tableTemp))
+  }
+  
+  totLignes<-sum(l)
+  p<-c()
+  for (j in 1:12){
+    p<-c(p,(l[j]/totLignes)*NbAct*x[j]*12)
+  }
+  
+  return (sum(p))
+}
+#-----
+
+
+algo<- function(delta,data2){
+  data2$mid<-(data2$bid+data2$ask)/2
+  k<-0
+  savek<-c()
+  modeup=1#ie initialisi ` up
+  #delta<-0.1
+  xext<-data2$mid[1]
+  nbChange=0
+  for (x in data2$mid){
+    if (modeup==1){
+      if (x<xext){
+        xext<-x
+        k=k+1
+      }
+      else if (((x-xext)/xext)>=delta){
+        #print("new DC up")
+        xext<-x
+        modeup=0
+        nbChange=nbChange+1
+        k=k+1
+        
+      }
+    }
+    else{
+      if (x>xext){
+        xext<-x
+        k=k+1
+      }
+      else if (((xext-x)/xext)>=delta){
+        #print("new DC down")
+        xext<-x
+        modeup=1
+        nbChange=nbChange+1
+        k=k+1
+        savek <- c(savek,k)
+      }
+    }
+  }
+  return(savek)}
+
+priceEvol<- function(pl,datas,NbAct,savek){
+  x<-0
+  for (i in 1:12){
+    x<-x+datas$ask[savek[i]+pl]*NbAct
+  }
+  return (x)
+}
+#--
+
+M<-20
+savesDec <- c()
+savesTwap <- c()
+savesVwap <- c()
+savesPE <- c()
+tempsEcoule <-c()
+
+for (i in 1:M){
+  aleatNb<-round(runif(1,2,900000))
+  
+  savesDec <- c(savesDec, DecisionPrice(aleatNb,data2,1000000))
+  savesTwap <- c(savesTwap, Twap(aleatNb,data2,1000000))
+  savesVwap <- c(savesVwap, Vwap(aleatNb,data2,1000000))
+  z<-algo(0.00109,data2[-1:-aleatNb,])
+  tempsEcoule <- c(tempsEcoule,data2$timestamp[z[12]]-data2$timestamp[z[1]])
+  print(data2$timestamp[z[12]]-data2$timestamp[z[1]])
+  savesPE <- c(savesPE,priceEvol(aleatNb,data2,1000000,z ))
+}
+
+moyDec<-sum(savesDec)/M
+moyTwap<-sum(savesTwap)/M
+moyVwap<-sum(savesVwap)/M
+moyPE<-sum(savesPE)/M
+moyTemps<-sum(tempsEcoule)/M
+
+#plot(data2$ask,typ='l', col="blue", 
+#     main="evolution du prix ask",xlab="operations dans le temps", ylab="valeur")
+```
+
+* TWAP vs decisionPrice :
+The decisionPrice seems to be more advantageous, this may be due to the fact that the price evolution in my chosen bound has a linear increasing trend. So if you buy everything at the beginning, you have a lower expectation. Moreover, in a real market each purchase influences the price (ask), which means that it doesn't seem like a good idea to buy all our shares at once like the decisionPrice does.
+
+* TWAP vs VWAP :
+In our test sample, the VWAP is slightly better, but we "cheated" because the cheated" because we knew we knew in advance the number of trades that would be made. In the real world, it is  difficult to say that one of these two algorithms is better than the other, and both have the problem of being predictable.
+
+* priceEvolution :
+Remark: although the algorithm buys and sells according to observed market prices, I could not implement it correctly. to implement it correctly so it only buys when it gets a "new DC down". I did several tests manually, and with a δ ~= 0.00108, the whole order is executed in about 3 hours. If you don't want to exceed this 3 hours limit, you have to decrease the delta in order to  to buy more frequently. 
+In my tests, this algorithm came in 2nd place, as shown in the table Average_price_over_20_iterations.
+
+* Conclusion:
+It is difficult to compare these different algorithms, and to determine whether one is is better than the others. As our data has a growing trend, this influences the results found results found on the different algorithms. Furthermore, this does not reflect the reality of the market, as here predictability and massive order buying has no influence on the price
