@@ -1,0 +1,77 @@
+# Introduction to computational finance
+
+## The Greeks
+Like in the series 9, let an asset S be valuated at t = 0. Let be a put option having maturity
+T = 1 and strike price K = 120. The volatility is assumed to be constant (σ = 20%) over
+the lifespan of the put; the risk-free rate is r = 5%; the put is an European option.
+Using the Black-Scholes formula to valuate the put price:
+• Plot the evolution of the put price as a function of the initial assert price S0.
+• Plot the ∆ for this put.
+• Plot the Γ for this put.
+• Comment the graphs.
+
+```{r}
+BSCall <- function(S0=100, K=120, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  d2<- (log(S0/K)+(rf - sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (S0*pnorm(d1) - K * exp(-rf*T)*pnorm(d2))
+}
+
+BSPut <- function(S0=100, K=120, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  d2<- (log(S0/K)+(rf - sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (-S0*pnorm(-d1) + K * exp(-rf*T)*pnorm(-d2))
+}
+
+BSDeltaCall <- function(S0=100, K=120, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (pnorm(d1))
+}
+
+BSDeltaPut <- function(S0=100, K=120, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (-pnorm(-d1))
+}
+
+BSThetaCall <- function(S0=100, K=80, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  d2<- (log(S0/K)+(rf - sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (-S0*sigma*exp(-d1^2/2)/2/sqrt(T)/sqrt(2*pi)-rf*K*exp(-rf*T)*pnorm(d2))
+}
+
+BSThetaPut <- function(S0=100, K=80, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  d2<- (log(S0/K)+(rf - sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (-S0*sigma*exp(-d1^2/2)/2/sqrt(T)/sqrt(2*pi)-rf*K*exp(-rf*T)*pnorm(-d2))
+}
+
+BSGamma <- function(S0=100, K=100, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (1/S0/sigma/sqrt(T)*exp(-d1^2/2)/2/pi)
+}
+
+
+K= c(BSCall,BSPut,BSDeltaCall,BSDeltaPut,BSThetaCall,BSThetaPut,BSGamma)
+K2= c('BSCall','BSPut','BSDeltaCall','BSDeltaPut','BSThetaCall','BSThetaPut','BSGamma')
+YAXE=c('Price','Price','Delta','Delta','Theta','Theta','Gamma')
+incr=1
+par(mfrow=c(2,4))
+for (i in K){
+  dep<-seq(40,160,5)
+  bin<-lapply(dep,function(x)i(S0=x))
+  plot(dep,bin,col='red',xlab='S0',ylab=YAXE[incr],
+       main= K2[incr] )
+  incr =incr+1
+}
+
+BSDeltaPut(S0=100)*1000
+
+```
+
+Suppose that the asset price is S0 = 100, and we sell 1000 puts.
+• We want be ∆-neutralized, which position should we have?
+
+So 712.8084 is the number of underlying to buy to be protect if we are on the seller size.
+If we want to protect without this delta (cost $100k to be sure at the end I have the ability to provide the asset at the given price -> so here we can reduce to 71'280.84)
+
+
