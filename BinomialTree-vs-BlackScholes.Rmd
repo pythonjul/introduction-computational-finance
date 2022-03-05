@@ -1,0 +1,59 @@
+# Introduction to Computational Finance
+
+## Binomial Tree vs Black-Scholes
+
+Let an asset S be valuated at t = 0 at S0 = 100. Let be a call option having maturity T = 1 and strike price K = 120. The volatility is assumed to be constant (σ = 20%) over the lifespan of the call; the risk-free rate is r = 5%.
+• Implement the Black-Scholes formula and determine the value of this call at t = 0.
+• Implement a binomial tree to determine the call option value. The implementation should take the depth of the tree as an argument.
+• Plot the evolution of the estimated value of the call option as a function of the binomial tree depth.
+• Comment your results.
+• How deep should be the tree in order to get a reasonable approximation?
+
+```{r}
+BSCall <- function(S0=100, K=120, T=1, rf= 0.05, sigma=0.2){
+  d1<- (log(S0/K)+(rf + sigma^2/2)*T)/(sqrt(T)*sigma)
+  d2<- (log(S0/K)+(rf - sigma^2/2)*T)/(sqrt(T)*sigma)
+  return (S0*pnorm(d1) - K * exp(-rf*T)*pnorm(d2))
+}
+
+BSCall()
+
+BinCall<-function(S0=100,K=120,T=1,rf=0.05,sigma=0.2,N=1){
+  dt<-T/N
+  u<-exp(sigma*sqrt(dt))
+  d<-exp(-sigma*sqrt(dt))
+  p<-(exp(rf*dt)-d)/(u-d)
+  step<-function(S,s){
+    if(s==N){
+      fu<-max(S*u-K,0)
+      fd<-max(S*d-K,0)
+    } else {
+      fu<-step(S*u,s+1)
+      fd<-step(S*d,s+1)
+    }
+    return (exp(-rf*dt)*(p*fu+(1-p)*fd))
+  }
+  return(step(S0,1))
+}
+
+dep<-1:25
+bin<-lapply(dep,function(x)BinCall(N=x))
+
+plot(dep,bin,type='l',xlab='depth',ylab='Price',main='Call price BS vs Binomial')
+abline(a=BSCall(),b=0,col='red')
+legend('topright',c('binomial','BS'),lty=1,col=c('black','red'))
+
+```
+## Rem: 
+
+*A call is a wright to buy something at a given price in the future, but it's not mandatory to buy it at the end. For the buyer it seems very good, but for the seller it seems complicated. Used only if price goes up.
+
+Future is not the wright to buy or sell in future but a contract that will happen, ex in 2 months I need to have EUR, I will go in future contract. If I am a society, I don't want to take a risk, if there is a worst rate in 2months. I go in a future contract and at the end I will have my money.
+Problem: be able to give a price of the option that takes count to the complexity of the market. if we sell the option we don't want too much risk. If we sell too high I will be protect but nobody will buy it. So to price the option, binomial tree and at each time step, the price can go up or down, up or down,..
+
+Fact: 
+if option is easy, Black Scholes formula.
+if more exotic options, maybe not possible to use BS at each step-> binomial tree
+
+# Solution:
+For this example, the 2 methods give almost the same result between 15-25.
